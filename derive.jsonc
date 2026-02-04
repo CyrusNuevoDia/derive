@@ -1,0 +1,10 @@
+{
+  "runner": "claude --allowed-tools Read,Write,Edit --print {prompt}",
+  "tasks": {
+    "readme": {
+      "prompt": "Generate a comprehensive README.md for this CLI tool based on the source code. Include: installation, usage examples for all CLI flags, configuration file formats (jsonc, json, toml, ts), and a quick-start guide.",
+      "sources": ["src/**/*.ts"],
+      "exclude": ["src/**/*.test.ts"]
+    }
+  }
+}
