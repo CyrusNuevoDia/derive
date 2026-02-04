@@ -1,0 +1,12 @@
+// Valid JSONC config with comments
+{
+  // The runner command with prompt placeholder
+  "runner": "bash test/fixtures/mock-runner.sh \"{prompt}\"",
+  "tasks": {
+    // Example task configuration
+    "example": {
+      "prompt": "Process these files",
+      "sources": ["test/fixtures/sources/*.ts"]
+    }
+  }
+}

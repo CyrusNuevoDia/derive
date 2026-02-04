@@ -1,0 +1,5 @@
+runner = "bash test/fixtures/mock-runner.sh \"{prompt}\""
+
+[tasks.example]
+prompt = "Process these files"
+sources = ["test/fixtures/sources/*.ts"]

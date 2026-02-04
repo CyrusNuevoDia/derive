@@ -1,0 +1,8 @@
+{
+  "runner": "bash test/fixtures/mock-runner.sh \"{prompt}\"",
+  "tasks": {
+    "example": {
+      "sources": ["test/fixtures/sources/*.ts"]
+    }
+  }
+}

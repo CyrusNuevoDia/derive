@@ -1,0 +1,8 @@
+{
+  "tasks": {
+    "example": {
+      "prompt": "Process these files",
+      "sources": ["test/fixtures/sources/*.ts"]
+    }
+  }
+}
