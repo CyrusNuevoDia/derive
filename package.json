@@ -1,0 +1,26 @@
+{
+  "name": "derive",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A CLI built with Bunli",
+  "author": "",
+  "bin": {
+    "derive": "./dist/index.js"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.0"
+  },
+  "bunli": {
+    "entry": "./src/index.ts",
+    "outDir": "./dist"
+  },
+  "module": "src/index.ts",
+  "private": true
+}
