@@ -1,8 +1,8 @@
 # derive
 
-Hyper-configurable `make` where the compiler is an LLM.
-
 A content-addressed, declarative, LLM-powered build system for derived files.
+
+> `make` where the compiler is an LLM.
 
 ```bash
 derive              # run tasks with changes
