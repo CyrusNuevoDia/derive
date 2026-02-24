@@ -15,7 +15,7 @@ derive --force      # ignore hashes, run anyway
 
 1. Hash your source files (SHA-256)
 2. Compare against `.derive.lock`
-3. If changed: assemble prompt → run your LLM CLI → update lock
+3. If changed: assemble prompt -> run your LLM CLI -> update lock
 4. If unchanged: skip
 
 No more regenerating docs when nothing changed. No more forgetting to update generated files when sources change.
@@ -24,31 +24,45 @@ No more regenerating docs when nothing changed. No more forgetting to update gen
 
 ```bash
 # Install
-bun install -g derive
-
-# Initialize config in your project
-derive --init
+npx make-derive --init
 
 # Edit derive.jsonc to define your tasks
 # Then run
+npx make-derive
+```
+
+Or install globally:
+
+```bash
+npm i -g make-derive
 derive
 ```
 
 ## Installation
 
-### From npm (via Bun)
+### Global install
 
 ```bash
-bun install -g derive
+npm i -g make-derive    # npm
+bun add -g make-derive  # bun
+pnpm add -g make-derive # pnpm
+```
+
+### Run without installing
+
+```bash
+npx make-derive         # npm
+bunx make-derive        # bun
+pnpx make-derive        # pnpm
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/zenbase-ai/derive
+git clone https://github.com/CyrusNuevoDia/derive
 cd derive
 bun install
-bun run build  # Creates bin/derive
+bun run build:bin  # Creates bin/derive
 ```
 
 ## CLI Reference
@@ -194,7 +208,7 @@ Use `derive.ts` for dynamic configuration:
 
 ```typescript
 // derive.ts
-import type { DeriveConfig } from "derive";
+import type { DeriveConfig } from "make-derive";
 
 export default async (): Promise<DeriveConfig> => {
   const pkg = await Bun.file("package.json").json();

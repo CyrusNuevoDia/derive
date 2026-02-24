@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { Shescape } from "shescape";
 
 /**
@@ -26,17 +27,18 @@ export async function executeRunner(
   const quoted = shescape.quote(prompt);
   const command = runnerTemplate.replace("{prompt}", quoted);
 
-  const proc = Bun.spawn([shell, "-l", "-i", "-c", command], {
-    cwd: process.cwd(),
-    stdin: "inherit",
-    stdout: "inherit",
-    stderr: "inherit",
-    env: {
-      ...process.env,
-      FORCE_COLOR: "1",
-    },
-  });
+  return new Promise((resolve) => {
+    const proc = spawn(shell, ["-l", "-i", "-c", command], {
+      cwd: process.cwd(),
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        FORCE_COLOR: "1",
+      },
+    });
 
-  const exitCode = await proc.exited;
-  return { exitCode, stdout: "", stderr: "" };
+    proc.on("close", (code) => {
+      resolve({ exitCode: code ?? 1, stdout: "", stderr: "" });
+    });
+  });
 }

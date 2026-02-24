@@ -1,3 +1,4 @@
+import { readFile, writeFile } from "node:fs/promises";
 import type { DeriveLock, TaskDiff, TaskLockEntry } from "./types";
 
 /**
@@ -5,11 +6,12 @@ import type { DeriveLock, TaskDiff, TaskLockEntry } from "./types";
  * Returns an empty lock structure if the file doesn't exist.
  */
 export async function readLock(lockPath: string): Promise<DeriveLock> {
-  const file = Bun.file(lockPath);
-  if (!(await file.exists())) {
+  try {
+    const text = await readFile(lockPath, "utf-8");
+    return JSON.parse(text);
+  } catch {
     return { version: 1, tasks: {} };
   }
-  return await file.json();
 }
 
 /**
@@ -19,7 +21,7 @@ export async function writeLock(
   lockPath: string,
   lock: DeriveLock
 ): Promise<void> {
-  await Bun.write(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+  await writeFile(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
 }
 
 /**

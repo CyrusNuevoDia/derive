@@ -1,4 +1,6 @@
-import { CryptoHasher, file, Glob } from "bun";
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
+import fg from "fast-glob";
 
 /**
  * Hash a file using SHA-256 streaming to avoid OOM on large files.
@@ -6,13 +8,13 @@ import { CryptoHasher, file, Glob } from "bun";
  * @returns Promise resolving to "sha256:<hex>" format hash
  */
 export async function hashFile(path: string): Promise<string> {
-  const bunFile = file(path);
-  const hasher = new CryptoHasher("sha256");
-  const stream = bunFile.stream();
-  for await (const chunk of stream) {
-    hasher.update(chunk);
-  }
-  return `sha256:${hasher.digest("hex")}`;
+  return new Promise((resolve, reject) => {
+    const hasher = createHash("sha256");
+    const stream = createReadStream(path);
+    stream.on("data", (chunk) => hasher.update(chunk));
+    stream.on("end", () => resolve(`sha256:${hasher.digest("hex")}`));
+    stream.on("error", reject);
+  });
 }
 
 /**
@@ -22,7 +24,7 @@ export async function hashFile(path: string): Promise<string> {
  * @returns Merkle root in "sha256:<hex>" format
  */
 export function computeMerkleRoot(fileHashes: Record<string, string>): string {
-  const hasher = new CryptoHasher("sha256");
+  const hasher = createHash("sha256");
   const sortedPaths = Object.keys(fileHashes).sort();
   for (const path of sortedPaths) {
     hasher.update(`${path}:${fileHashes[path]}\n`);
@@ -41,21 +43,10 @@ export async function resolveFiles(
   sources: string[],
   exclude: string[] = []
 ): Promise<string[]> {
-  const matched = new Set<string>();
-
-  for (const pattern of sources) {
-    const glob = new Glob(pattern);
-    for await (const path of glob.scan({ cwd: process.cwd(), dot: false })) {
-      matched.add(path);
-    }
-  }
-
-  for (const pattern of exclude) {
-    const glob = new Glob(pattern);
-    for await (const path of glob.scan({ cwd: process.cwd(), dot: false })) {
-      matched.delete(path);
-    }
-  }
-
-  return [...matched].sort();
+  const files = await fg(sources, {
+    cwd: process.cwd(),
+    dot: false,
+    ignore: exclude,
+  });
+  return [...new Set(files)].sort();
 }

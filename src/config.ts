@@ -1,5 +1,7 @@
+import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
+import stripJsonComments from "strip-json-comments";
 import { z } from "zod";
 import type { DeriveConfig } from "./types";
 
@@ -40,12 +42,21 @@ const DeriveConfigSchema = z
   })
   .passthrough();
 
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function discoverConfig(cwd?: string): Promise<string | null> {
   const dir = cwd ?? process.cwd();
 
   for (const filename of CONFIG_FILES) {
     const filepath = resolve(dir, filename);
-    if (await Bun.file(filepath).exists()) {
+    if (await fileExists(filepath)) {
       return filepath;
     }
   }
@@ -65,10 +76,10 @@ export async function loadConfig(path: string): Promise<DeriveConfig> {
     return validateConfig(raw);
   }
 
-  const text = await Bun.file(path).text();
+  const text = await readFile(path, "utf-8");
 
   if (ext === "json" || ext === "jsonc") {
-    return validateConfig(Bun.JSONC.parse(text));
+    return validateConfig(JSON.parse(stripJsonComments(text)));
   }
 
   if (ext === "toml") {

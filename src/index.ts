@@ -1,5 +1,6 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
+import { access, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { discoverConfig, loadConfig } from "./config";
@@ -14,7 +15,7 @@ import type {
   TaskLockEntry,
 } from "./types";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 const HELP = `derive ${VERSION}
 
@@ -83,11 +84,14 @@ function parseCliArgs(): Args {
 
 async function handleInit(): Promise<void> {
   const configPath = resolve(process.cwd(), "derive.jsonc");
-  if (await Bun.file(configPath).exists()) {
+  try {
+    await access(configPath);
     console.error("derive: derive.jsonc already exists");
     process.exit(1);
+  } catch {
+    // File doesn't exist, proceed
   }
-  await Bun.write(configPath, STARTER_CONFIG);
+  await writeFile(configPath, STARTER_CONFIG);
   console.log("derive: created derive.jsonc");
 }
 

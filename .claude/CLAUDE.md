@@ -121,3 +121,17 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 ---
 
 Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
+
+---
+
+## Publishing
+
+This package is published to npm as `make-derive` (CLI command: `derive`).
+
+- **Build**: `bun run build` bundles `src/index.ts` into a single `dist/derive.js` with all dependencies inlined
+- **Build standalone binary**: `bun run build:bin` compiles to `bin/derive` (local use only, not published)
+- **Publish**: `npm publish` (runs `prepublishOnly` -> `bun run build` automatically)
+- **Install**: `npm i -g make-derive` / `bun add -g make-derive` / `pnpm add -g make-derive`
+- **Run without installing**: `npx make-derive` / `bunx make-derive` / `pnpx make-derive`
+
+The published package contains only `dist/derive.js` (single bundled file with `#!/usr/bin/env node` shebang), `README.md`, and `LICENSE`. Runtime dependencies are bundled into the output at build time, so they live in `devDependencies`. The source uses only Node.js standard APIs (no Bun-specific APIs) so it works with any runtime.
