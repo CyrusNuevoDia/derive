@@ -10,7 +10,7 @@ const originalCwd = process.cwd();
 let tempDir: string;
 
 beforeEach(async () => {
-  tempDir = await mkdtemp(join(tmpdir(), "derive-integration-"));
+  tempDir = await mkdtemp(join(tmpdir(), "llmake-integration-"));
   process.chdir(tempDir);
 });
 
@@ -53,7 +53,7 @@ async function writeSourceFile(
 
 async function readLockFile(): Promise<Record<string, unknown> | null> {
   try {
-    const content = await readFile(join(tempDir, ".derive.lock"), "utf-8");
+    const content = await readFile(join(tempDir, ".llmake.lock"), "utf-8");
     return JSON.parse(content);
   } catch {
     return null;
@@ -69,14 +69,14 @@ async function fileExists(relativePath: string): Promise<boolean> {
   }
 }
 
-describe("derive CLI integration tests", () => {
+describe("llmake CLI integration tests", () => {
   describe("basic workflow tests", () => {
     it("full run: discovers config, hashes files, detects changes, invokes runner, writes lock", async () => {
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
       await writeSourceFile("src/b.ts", 'export const b = "world";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -91,7 +91,7 @@ describe("derive CLI integration tests", () => {
       const { exitCode, stdout } = await runCli();
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("loaded derive.jsonc");
+      expect(stdout).toContain("loaded llmake.jsonc");
       expect(stdout).toContain("test");
 
       const lock = await readLockFile();
@@ -107,7 +107,7 @@ describe("derive CLI integration tests", () => {
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -140,7 +140,7 @@ describe("derive CLI integration tests", () => {
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -178,7 +178,7 @@ describe("derive CLI integration tests", () => {
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -209,7 +209,7 @@ describe("derive CLI integration tests", () => {
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -240,7 +240,7 @@ describe("derive CLI integration tests", () => {
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -268,23 +268,23 @@ describe("derive CLI integration tests", () => {
       expect(outputExists).toBe(true);
     });
 
-    it("--init creates starter derive.jsonc", async () => {
+    it("--init creates starter llmake.jsonc", async () => {
       const { exitCode, stdout } = await runCli(["--init"]);
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("created derive.jsonc");
+      expect(stdout).toContain("created llmake.jsonc");
 
-      const configExists = await fileExists("derive.jsonc");
+      const configExists = await fileExists("llmake.jsonc");
       expect(configExists).toBe(true);
 
-      const content = await readFile(join(tempDir, "derive.jsonc"), "utf-8");
+      const content = await readFile(join(tempDir, "llmake.jsonc"), "utf-8");
       expect(content).toContain("runner");
       expect(content).toContain("tasks");
       expect(content).toContain("{prompt}");
     });
 
     it("--init fails if config already exists", async () => {
-      await writeConfig("derive.jsonc", "{}");
+      await writeConfig("llmake.jsonc", "{}");
 
       const { exitCode, stderr } = await runCli(["--init"]);
 
@@ -297,7 +297,7 @@ describe("derive CLI integration tests", () => {
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Usage:");
-      expect(stdout).toContain("derive");
+      expect(stdout).toContain("llmake");
       expect(stdout).toContain("--force");
       expect(stdout).toContain("--dry-run");
       expect(stdout).toContain("--status");
@@ -315,11 +315,11 @@ describe("derive CLI integration tests", () => {
   });
 
   describe("config format tests", () => {
-    it("works with derive.jsonc config", async () => {
+    it("works with llmake.jsonc config", async () => {
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         `{
           // This is a comment
           "runner": "echo \\"{prompt}\\" > output.txt",
@@ -335,14 +335,14 @@ describe("derive CLI integration tests", () => {
       const { exitCode, stdout } = await runCli();
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("loaded derive.jsonc");
+      expect(stdout).toContain("loaded llmake.jsonc");
     });
 
-    it("works with derive.json config", async () => {
+    it("works with llmake.json config", async () => {
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.json",
+        "llmake.json",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -357,14 +357,14 @@ describe("derive CLI integration tests", () => {
       const { exitCode, stdout } = await runCli();
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("loaded derive.json");
+      expect(stdout).toContain("loaded llmake.json");
     });
 
-    it("works with derive.toml config", async () => {
+    it("works with llmake.toml config", async () => {
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.toml",
+        "llmake.toml",
         `runner = 'echo "{prompt}" > output.txt'
 
 [tasks.test]
@@ -376,7 +376,7 @@ sources = ["src/**/*.ts"]
       const { exitCode, stdout } = await runCli();
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("loaded derive.toml");
+      expect(stdout).toContain("loaded llmake.toml");
     });
   });
 
@@ -392,7 +392,7 @@ sources = ["src/**/*.ts"]
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}"',
           tasks: {
@@ -421,7 +421,7 @@ sources = ["src/**/*.ts"]
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: "exit 1 # {prompt}",
           tasks: {
@@ -445,7 +445,7 @@ sources = ["src/**/*.ts"]
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output-$TASK.txt',
           tasks: {
@@ -510,7 +510,7 @@ sources = ["src/**/*.ts"]
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -543,7 +543,7 @@ sources = ["src/**/*.ts"]
       await writeSourceFile("src/a.ts", 'export const a = "hello";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -587,7 +587,7 @@ sources = ["src/**/*.ts"]
       await writeSourceFile("other/d.ts", 'export const d = "d";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {
@@ -612,7 +612,7 @@ sources = ["src/**/*.ts"]
       await writeSourceFile("src/b.ts", 'export const b = "b";');
 
       await writeConfig(
-        "derive.jsonc",
+        "llmake.jsonc",
         JSON.stringify({
           runner: 'echo "{prompt}" > output.txt',
           tasks: {

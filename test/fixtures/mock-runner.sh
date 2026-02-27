@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-echo "$1" > /tmp/derive-test-prompt.txt
+echo "$1" > /tmp/llmake-test-prompt.txt
 exit 0

@@ -1,11 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
-import type { DeriveLock, TaskDiff, TaskLockEntry } from "./types";
+import type { LlmakeLock, TaskDiff, TaskLockEntry } from "./types";
 
 /**
  * Read the lockfile from disk.
  * Returns an empty lock structure if the file doesn't exist.
  */
-export async function readLock(lockPath: string): Promise<DeriveLock> {
+export async function readLock(lockPath: string): Promise<LlmakeLock> {
   try {
     const text = await readFile(lockPath, "utf-8");
     return JSON.parse(text);
@@ -19,7 +19,7 @@ export async function readLock(lockPath: string): Promise<DeriveLock> {
  */
 export async function writeLock(
   lockPath: string,
-  lock: DeriveLock
+  lock: LlmakeLock
 ): Promise<void> {
   await writeFile(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
 }

@@ -1,8 +1,8 @@
-# derive — Bun Implementation Spec
+# llmake — Implementation Spec
 
 ## Overview
 
-`derive` is a content-addressed, LLM-powered build system for derived files. It detects source file changes via SHA-256 hashing, assembles a prompt, and injects it into a configurable runner command (e.g. `claude`, `codex`, `llm`).
+`llmake` is a content-addressed, LLM-powered build system for derived files. It detects source file changes via SHA-256 hashing, assembles a prompt, and injects it into a configurable runner command (e.g. `claude`, `codex`, `llm`).
 
 Built as a single TypeScript entrypoint, compiled to a standalone binary via `bun build --compile`.
 
@@ -11,7 +11,7 @@ Built as a single TypeScript entrypoint, compiled to a standalone binary via `bu
 ## Project Structure
 
 ```
-derive/
+llmake/
 ├── src/
 │   ├── index.ts          # CLI entrypoint (argument parsing, orchestration)
 │   ├── config.ts         # Config discovery, loading, validation
@@ -25,7 +25,7 @@ derive/
 │   ├── lock.test.ts
 │   ├── runner.test.ts
 │   └── integration.test.ts
-├── derive.jsonc          # Self-referential: derive uses derive
+├── llmake.jsonc          # Self-referential: llmake uses llmake
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -37,7 +37,7 @@ derive/
 
 ```typescript
 /** The resolved, validated configuration shape. */
-export type DeriveConfig = {
+export type LlmakeConfig = {
   runner: string;
   tasks: Record<string, TaskConfig>;
 }
@@ -49,8 +49,8 @@ export type TaskConfig = {
   runner?: string;  // overrides top-level runner
 }
 
-/** The .derive.lock file shape. */
-export type DeriveLock = {
+/** The .llmake.lock file shape. */
+export type LlmakeLock = {
   version: 1;
   tasks: Record<string, TaskLockEntry>;
 }
@@ -77,22 +77,22 @@ export type TaskDiff = {
 
 ### Discovery Order
 
-When no explicit `--config` flag is provided, derive searches the current working directory for config files in this order:
+When no explicit `--config` flag is provided, llmake searches the current working directory for config files in this order:
 
-1. `derive.ts`
-2. `derive.jsonc`
-3. `derive.json`
-4. `derive.toml`
+1. `llmake.ts`
+2. `llmake.jsonc`
+3. `llmake.json`
+4. `llmake.toml`
 
 **First match wins.** If none are found, exit with code 2 and message:
 
 ```
-derive: no config found (looked for derive.ts, derive.jsonc, derive.json, derive.toml)
+llmake: no config found (looked for llmake.ts, llmake.jsonc, llmake.json, llmake.toml)
 ```
 
 ### Loading by Format
 
-#### `derive.json` / `derive.jsonc`
+#### `llmake.json` / `llmake.jsonc`
 
 ```typescript
 const text = await Bun.file(path).text();
@@ -108,15 +108,15 @@ JSONC comment stripping should handle:
 - Comments inside strings must NOT be stripped (e.g. `"url": "https://example.com"`)
 - Trailing commas (JSON.parse in Bun handles these natively)
 
-#### `derive.toml`
+#### `llmake.toml`
 
 Use Bun's built-in TOML support or a lightweight parser.
 
-#### `derive.ts`
+#### `llmake.ts`
 
 Evaluated at runtime via dynamic import. The file must have a default export that is either:
-- A `DeriveConfig` object, or
-- An `async () => DeriveConfig` function
+- A `LlmakeConfig` object, or
+- An `async () => LlmakeConfig` function
 
 ```typescript
 const mod = await import(resolve(path));
@@ -128,10 +128,10 @@ return validate(raw);
 This enables dynamic config:
 
 ```typescript
-// derive.ts
-import type { DeriveConfig } from "derive";
+// llmake.ts
+import type { LlmakeConfig } from "llmake";
 
-export default async (): Promise<DeriveConfig> => {
+export default async (): Promise<LlmakeConfig> => {
   const pkg = await Bun.file("package.json").json();
   return {
     runner: `claude --print --prompt "{prompt}"`,
@@ -160,8 +160,8 @@ After loading, validate the config structurally. On failure, exit with code 2 an
 **Error messages should be specific:**
 
 ```
-derive: config error in "api-docs": runner does not contain {prompt}
-derive: config error in "skill": sources must be a non-empty array
+llmake: config error in "api-docs": runner does not contain {prompt}
+llmake: config error in "skill": sources must be a non-empty array
 ```
 
 ---
@@ -238,12 +238,12 @@ export async function resolveFiles(
 
 ### Location
 
-`.derive.lock` in the same directory as the config file. Always JSON (not JSONC — no comments needed, it's machine-managed).
+`.llmake.lock` in the same directory as the config file. Always JSON (not JSONC — no comments needed, it's machine-managed).
 
 ### Reading
 
 ```typescript
-export async function readLock(lockPath: string): Promise<DeriveLock> {
+export async function readLock(lockPath: string): Promise<LlmakeLock> {
   const file = Bun.file(lockPath);
   if (!(await file.exists())) {
     return { version: 1, tasks: {} };
@@ -257,7 +257,7 @@ export async function readLock(lockPath: string): Promise<DeriveLock> {
 ```typescript
 export async function writeLock(
   lockPath: string,
-  lock: DeriveLock
+  lock: LlmakeLock
 ): Promise<void> {
   await Bun.write(lockPath, JSON.stringify(lock, null, 2) + "\n");
 }
@@ -330,7 +330,7 @@ export function diffTask(
 
 This is critical. LLM CLI tools like `claude`, `codex`, and `llm` are typically installed via `npm -g`, `pip`, `brew`, or similar — and their paths are configured in the user's shell profile (`.zshrc`, `.bashrc`, `.profile`). A naive `child_process.exec` won't load these profiles.
 
-**derive must execute the runner as a login shell command:**
+**llmake must execute the runner as a login shell command:**
 
 ```typescript
 import { $ } from "bun";
@@ -429,15 +429,15 @@ const command = runnerTemplate.replace("{prompt}", escaped);
 Keep it minimal. No framework needed — `process.argv` slicing is sufficient for this surface area.
 
 ```
-derive                     # run all tasks with changes
-derive <task>              # run specific task if changed
-derive --force [task]      # run regardless of hash state
-derive --dry-run [task]    # show what would run
-derive --status            # show per-task change status
-derive --init              # write a starter derive.jsonc
-derive --config <path>     # use specific config file
-derive --help              # print usage
-derive --version           # print version
+llmake                     # run all tasks with changes
+llmake <task>              # run specific task if changed
+llmake --force [task]      # run regardless of hash state
+llmake --dry-run [task]    # show what would run
+llmake --status            # show per-task change status
+llmake --init              # write a starter llmake.jsonc
+llmake --config <path>     # use specific config file
+llmake --help              # print usage
+llmake --version           # print version
 ```
 
 ### Orchestration (main loop)
@@ -445,7 +445,7 @@ derive --version           # print version
 ```
 1. Parse CLI args
 2. Discover + load config
-3. Read .derive.lock
+3. Read .llmake.lock
 4. Determine which tasks to process (all or specified)
 5. For each task:
    a. Resolve globs → file list
@@ -458,7 +458,7 @@ derive --version           # print version
    h. Assemble prompt XML
    i. Interpolate into runner
    j. Execute via login shell
-   k. If exit 0: update lockfile entry, write .derive.lock
+   k. If exit 0: update lockfile entry, write .llmake.lock
    l. If exit != 0: leave lockfile unchanged, log error
 6. Exit with appropriate code
 ```
@@ -468,42 +468,42 @@ derive --version           # print version
 Minimal, structured. No spinners, no progress bars. This is a build tool, not a TUI.
 
 ```
-derive: loaded derive.jsonc (3 tasks)
-derive: skill — 3 files changed (src/cli.py, src/load.py, src/dedupe.py)
-derive: skill — running: claude --print --prompt "..."
-derive: skill — done (14.2s)
-derive: readme — no changes
-derive: api-docs — 1 file changed (src/api/routes.ts)
-derive: api-docs — running: codex --prompt "..."
-derive: api-docs — done (8.7s)
-derive: updated .derive.lock
+llmake: loaded llmake.jsonc (3 tasks)
+llmake: skill — 3 files changed (src/cli.py, src/load.py, src/dedupe.py)
+llmake: skill — running: claude --print --prompt "..."
+llmake: skill — done (14.2s)
+llmake: readme — no changes
+llmake: api-docs — 1 file changed (src/api/routes.ts)
+llmake: api-docs — running: codex --prompt "..."
+llmake: api-docs — done (8.7s)
+llmake: updated .llmake.lock
 ```
 
 With `--status`:
 
 ```
-derive: skill — changed (3 files)
-derive: readme — up to date
-derive: api-docs — changed (1 file)
+llmake: skill — changed (3 files)
+llmake: readme — up to date
+llmake: api-docs — changed (1 file)
 ```
 
 With `--dry-run`:
 
 ```
-derive: skill — would run: claude --print --prompt "<prompt>Update the Claude Code skill...</prompt>\n<changed-files>src/cli.py, src/load.py</changed-files>"
-derive: readme — no changes, would skip
+llmake: skill — would run: claude --print --prompt "<prompt>Update the Claude Code skill...</prompt>\n<changed-files>src/cli.py, src/load.py</changed-files>"
+llmake: readme — no changes, would skip
 ```
 
 ---
 
-## `derive --init`
+## `llmake --init`
 
-Creates a starter `derive.jsonc` in the current directory:
+Creates a starter `llmake.jsonc` in the current directory:
 
 ```jsonc
 {
-  // derive: content-addressed LLM generation
-  // Docs: https://github.com/yourname/derive
+  // llmake: content-addressed LLM generation
+  // Docs: https://github.com/CyrusNuevoDia/llmake
 
   // Default runner. {prompt} is the only injected variable.
   "runner": "claude --print --prompt \"{prompt}\"",
@@ -533,27 +533,27 @@ bun test                      # run test suite
 
 ```bash
 # Current platform
-bun build src/index.ts --compile --outfile derive
+bun build src/index.ts --compile --outfile llmake
 
 # Cross-compile
-bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile derive-macos-arm64
-bun build src/index.ts --compile --target=bun-linux-x64 --outfile derive-linux-x64
-bun build src/index.ts --compile --target=bun-windows-x64 --outfile derive-windows-x64.exe
+bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile llmake-macos-arm64
+bun build src/index.ts --compile --target=bun-linux-x64 --outfile llmake-linux-x64
+bun build src/index.ts --compile --target=bun-windows-x64 --outfile llmake-windows-x64.exe
 ```
 
 ### package.json
 
 ```json
 {
-  "name": "derive",
+  "name": "llmake",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "derive": "./src/index.ts"
+    "llmake": "./src/index.ts"
   },
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --compile --outfile bin/derive",
+    "build": "bun build src/index.ts --compile --outfile bin/llmake",
     "test": "bun test"
   },
   "dependencies": {
@@ -572,11 +572,11 @@ bun build src/index.ts --compile --target=bun-windows-x64 --outfile derive-windo
 ### `config.test.ts` — Config Discovery & Loading
 
 ```
-✓ discovers derive.jsonc in cwd
-✓ discovers derive.json when no .jsonc exists
-✓ discovers derive.toml when no .json/.jsonc exists
-✓ discovers derive.ts when no other configs exist
-✓ respects priority order (derive.ts wins over derive.jsonc if both exist)
+✓ discovers llmake.jsonc in cwd
+✓ discovers llmake.json when no .jsonc exists
+✓ discovers llmake.toml when no .json/.jsonc exists
+✓ discovers llmake.ts when no other configs exist
+✓ respects priority order (llmake.ts wins over llmake.jsonc if both exist)
 ✓ --config flag overrides autodiscovery
 ✓ exits code 2 when no config found
 ✓ parses JSONC with single-line comments
@@ -584,9 +584,9 @@ bun build src/index.ts --compile --target=bun-windows-x64 --outfile derive-windo
 ✓ parses JSONC with trailing commas
 ✓ does not strip comments inside strings (e.g. URLs with //)
 ✓ parses TOML config correctly
-✓ evaluates derive.ts default export (object)
-✓ evaluates derive.ts default export (async function)
-✓ rejects derive.ts that exports neither object nor function
+✓ evaluates llmake.ts default export (object)
+✓ evaluates llmake.ts default export (async function)
+✓ rejects llmake.ts that exports neither object nor function
 ✓ rejects config missing runner field
 ✓ rejects config with runner missing {prompt}
 ✓ rejects config with empty tasks
@@ -624,9 +624,9 @@ bun build src/index.ts --compile --target=bun-windows-x64 --outfile derive-windo
 ### `lock.test.ts` — Lockfile Management
 
 ```
-✓ returns empty lock when .derive.lock doesn't exist
-✓ reads and parses existing .derive.lock
-✓ writes .derive.lock with stable JSON formatting
+✓ returns empty lock when .llmake.lock doesn't exist
+✓ reads and parses existing .llmake.lock
+✓ writes .llmake.lock with stable JSON formatting
 ✓ written lockfile is valid JSON and roundtrips cleanly
 ✓ diff detects no changes when Merkle root matches
 ✓ diff fast-paths on Merkle root match (skips per-file comparison)
@@ -681,15 +681,15 @@ These tests use a temporary directory with real files and a mock runner (a simpl
 ✓ runner failure (exit code 1) does not update lockfile
 ✓ runner failure for one task does not prevent other tasks from running
 ✓ per-task runner override is used when specified
-✓ works with derive.jsonc config
-✓ works with derive.json config
-✓ works with derive.toml config
-✓ works with derive.ts config (object export)
-✓ works with derive.ts config (async function export)
+✓ works with llmake.jsonc config
+✓ works with llmake.json config
+✓ works with llmake.toml config
+✓ works with llmake.ts config (object export)
+✓ works with llmake.ts config (async function export)
 ✓ handles task with no matching source files (treats as "no changes")
 ✓ handles special characters in file paths
-✓ creates .derive.lock on first run
-✓ --init creates starter derive.jsonc
+✓ creates .llmake.lock on first run
+✓ --init creates starter llmake.jsonc
 ✓ --init refuses to overwrite existing config
 ```
 
@@ -701,7 +701,7 @@ Create a simple script at `test/fixtures/mock-runner.sh`:
 #!/usr/bin/env bash
 # Mock runner that logs invocation and exits successfully.
 # Writes the received prompt to a file for assertion.
-echo "$1" > /tmp/derive-test-prompt.txt
+echo "$1" > /tmp/llmake-test-prompt.txt
 exit 0
 ```
 
@@ -728,27 +728,27 @@ Test configs use these as runners:
 ### Config Errors
 - Missing or invalid config → exit code 2, descriptive message
 - Config file parse error (bad JSON, bad TOML) → exit code 2, include file name and parse error
-- `derive.ts` that throws during evaluation → exit code 2, include the thrown error
+- `llmake.ts` that throws during evaluation → exit code 2, include the thrown error
 
 ### Filesystem Edge Cases
 - Source glob matches zero files → task is treated as "no changes" (not an error)
 - Source file is deleted between glob resolution and hashing → log warning, skip file
-- `.derive.lock` is malformed → treat as empty lock (log warning), regenerate on next successful run
+- `.llmake.lock` is malformed → treat as empty lock (log warning), regenerate on next successful run
 - Config file disappears mid-run → this can't happen (it's loaded once at startup)
 
 ### Runner Edge Cases
-- Runner command not found (e.g. `claude` not in PATH) → the login shell will return exit code 127; derive reports this as a runner failure
-- Runner hangs indefinitely → derive does not impose a timeout (the user can Ctrl+C; the signal propagates via inherited stdin)
+- Runner command not found (e.g. `claude` not in PATH) → the login shell will return exit code 127; llmake reports this as a runner failure
+- Runner hangs indefinitely → llmake does not impose a timeout (the user can Ctrl+C; the signal propagates via inherited stdin)
 - Runner prints to stdout/stderr → passed through directly since we inherit stdio
 
 ### Concurrency
-- derive runs tasks in parallel and uses a lock around the lockfile to ensure atomicity. It always reads then writes.
+- llmake runs tasks in parallel and uses a lock around the lockfile to ensure atomicity. It always reads then writes.
 
 ---
 
 ## Future Considerations (Not in v0.1)
 
-- **Watch mode** (`derive --watch`) — re-run on filesystem changes via `fs.watch`
+- **Watch mode** (`llmake --watch`) — re-run on filesystem changes via `fs.watch`
 - **Task dependencies** — `"after": ["skill"]` field for ordering
 - **Prompt files** — `"prompt_file": "prompts/skill.md"` for long prompts
 - **CI mode** — `--ci` flag that exits non-zero if any task has pending changes (for drift detection in CI)

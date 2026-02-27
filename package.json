@@ -1,5 +1,5 @@
 {
-  "name": "make-derive",
+  "name": "llmake",
   "version": "0.1.1",
   "type": "module",
   "description": "Content-addressed LLM generation CLI — make, but the compiler is an LLM",
@@ -7,9 +7,9 @@
   "license": "GPL-3.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CyrusNuevoDia/derive.git"
+    "url": "git+https://github.com/CyrusNuevoDia/llmake.git"
   },
-  "homepage": "https://github.com/CyrusNuevoDia/derive",
+  "homepage": "https://github.com/CyrusNuevoDia/llmake",
   "keywords": [
     "llm",
     "cli",
@@ -18,20 +18,20 @@
     "make",
     "content-addressed",
     "ai",
-    "derive"
+    "llmake"
   ],
   "bin": {
-    "derive": "dist/derive.js"
+    "llmake": "dist/llmake.js"
   },
   "files": [
-    "dist/derive.js",
+    "dist/llmake.js",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outfile dist/derive.js --target node --minify",
-    "build:bin": "bun build src/index.ts --compile --outfile bin/derive",
+    "build": "bun build src/index.ts --outfile dist/llmake.js --target node --minify",
+    "build:bin": "bun build src/index.ts --compile --outfile bin/llmake",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check": "ultracite check",

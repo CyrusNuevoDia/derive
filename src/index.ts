@@ -8,8 +8,8 @@ import { computeMerkleRoot, hashFile, resolveFiles } from "./hash";
 import { diffTask, readLock, writeLock } from "./lock";
 import { assemblePrompt, executeRunner } from "./runner";
 import type {
-  DeriveConfig,
-  DeriveLock,
+  LlmakeConfig,
+  LlmakeLock,
   TaskConfig,
   TaskDiff,
   TaskLockEntry,
@@ -17,18 +17,18 @@ import type {
 
 const VERSION = "0.1.1";
 
-const HELP = `derive ${VERSION}
+const HELP = `llmake ${VERSION}
 
 Usage:
-  derive                     Run all tasks with changes
-  derive <task>              Run specific task if changed
-  derive --force [task]      Run regardless of hash state
-  derive --dry-run [task]    Show what would run
-  derive --status            Show per-task change status
-  derive --init              Write starter derive.jsonc
-  derive --config <path>     Use specific config file
-  derive --help              Print this help
-  derive --version           Print version
+  llmake                     Run all tasks with changes
+  llmake <task>              Run specific task if changed
+  llmake --force [task]      Run regardless of hash state
+  llmake --dry-run [task]    Show what would run
+  llmake --status            Show per-task change status
+  llmake --init              Write starter llmake.jsonc
+  llmake --config <path>     Use specific config file
+  llmake --help              Print this help
+  llmake --version           Print version
 `;
 
 const STARTER_CONFIG = `{
@@ -83,28 +83,28 @@ function parseCliArgs(): Args {
 }
 
 async function handleInit(): Promise<void> {
-  const configPath = resolve(process.cwd(), "derive.jsonc");
+  const configPath = resolve(process.cwd(), "llmake.jsonc");
   try {
     await access(configPath);
-    console.error("derive: derive.jsonc already exists");
+    console.error("llmake: llmake.jsonc already exists");
     process.exit(1);
   } catch {
     // File doesn't exist, proceed
   }
   await writeFile(configPath, STARTER_CONFIG);
-  console.log("derive: created derive.jsonc");
+  console.log("llmake: created llmake.jsonc");
 }
 
 async function loadAndValidateConfig(
   configPath?: string
-): Promise<{ config: DeriveConfig; path: string }> {
+): Promise<{ config: LlmakeConfig; path: string }> {
   const resolvedPath = configPath
     ? resolve(configPath)
     : await discoverConfig();
 
   if (!resolvedPath) {
     console.error(
-      "derive: no config file found (derive.ts, derive.jsonc, derive.json, derive.toml)"
+      "llmake: no config file found (llmake.ts, llmake.jsonc, llmake.json, llmake.toml)"
     );
     process.exit(2);
   }
@@ -128,14 +128,14 @@ interface TaskContext {
 
 async function prepareTask(
   name: string,
-  config: DeriveConfig,
-  lock: DeriveLock
+  config: LlmakeConfig,
+  lock: LlmakeLock
 ): Promise<TaskContext | null> {
   const taskConfig = config.tasks[name];
   const files = await resolveFiles(taskConfig.sources, taskConfig.exclude);
 
   if (files.length === 0) {
-    console.log(`derive: ${name} — no files matched`);
+    console.log(`llmake: ${name} — no files matched`);
     return null;
   }
 
@@ -160,19 +160,19 @@ async function prepareTask(
 function handleStatus(ctx: TaskContext): void {
   if (ctx.diff.changed) {
     const count = ctx.diff.changed_files.length + ctx.diff.removed_files.length;
-    console.log(`derive: ${ctx.name} — changed (${count} files)`);
+    console.log(`llmake: ${ctx.name} — changed (${count} files)`);
   } else {
-    console.log(`derive: ${ctx.name} — up to date`);
+    console.log(`llmake: ${ctx.name} — up to date`);
   }
 }
 
 function handleDryRun(ctx: TaskContext, force: boolean): void {
   if (ctx.diff.changed || force) {
     console.log(
-      `derive: ${ctx.name} — would run: ${ctx.runner.replace("{prompt}", "...")}`
+      `llmake: ${ctx.name} — would run: ${ctx.runner.replace("{prompt}", "...")}`
     );
   } else {
-    console.log(`derive: ${ctx.name} — no changes, would skip`);
+    console.log(`llmake: ${ctx.name} — no changes, would skip`);
   }
 }
 
@@ -181,14 +181,14 @@ async function runTask(
   force: boolean
 ): Promise<TaskLockEntry | null> {
   if (!(ctx.diff.changed || force)) {
-    console.log(`derive: ${ctx.name} — no changes`);
+    console.log(`llmake: ${ctx.name} — no changes`);
     return null;
   }
 
   logChanges(ctx, force);
 
   console.log(
-    `derive: ${ctx.name} — running: ${ctx.runner.replace("{prompt}", "...")}`
+    `llmake: ${ctx.name} — running: ${ctx.runner.replace("{prompt}", "...")}`
   );
 
   const prompt = assemblePrompt(ctx.config.prompt, ctx.diff.changed_files);
@@ -198,12 +198,12 @@ async function runTask(
 
   if (result.exitCode !== 0) {
     console.error(
-      `derive: ${ctx.name} — failed (exit ${result.exitCode}, ${elapsed}s)`
+      `llmake: ${ctx.name} — failed (exit ${result.exitCode}, ${elapsed}s)`
     );
     return null;
   }
 
-  console.log(`derive: ${ctx.name} — done (${elapsed}s)`);
+  console.log(`llmake: ${ctx.name} — done (${elapsed}s)`);
 
   return {
     last_run: new Date().toISOString(),
@@ -220,20 +220,20 @@ function logChanges(ctx: TaskContext, force: boolean): void {
         ? `, +${ctx.diff.changed_files.length - 3} more`
         : "";
     console.log(
-      `derive: ${ctx.name} — ${ctx.diff.changed_files.length} files changed (${list}${more})`
+      `llmake: ${ctx.name} — ${ctx.diff.changed_files.length} files changed (${list}${more})`
     );
   } else if (force) {
-    console.log(`derive: ${ctx.name} — forced run`);
+    console.log(`llmake: ${ctx.name} — forced run`);
   }
 }
 
 async function processTasks(
   taskNames: string[],
-  config: DeriveConfig,
-  lock: DeriveLock,
+  config: LlmakeConfig,
+  lock: LlmakeLock,
   args: Args
-): Promise<{ updatedLock: DeriveLock; anyFailed: boolean }> {
-  const updatedLock: DeriveLock = { version: 1, tasks: { ...lock.tasks } };
+): Promise<{ updatedLock: LlmakeLock; anyFailed: boolean }> {
+  const updatedLock: LlmakeLock = { version: 1, tasks: { ...lock.tasks } };
   let anyFailed = false;
 
   for (const taskName of taskNames) {
@@ -269,7 +269,7 @@ async function main(): Promise<void> {
     args = parseCliArgs();
   } catch (error) {
     console.error(
-      `derive: ${error instanceof Error ? error.message : String(error)}`
+      `llmake: ${error instanceof Error ? error.message : String(error)}`
     );
     process.exit(1);
   }
@@ -291,14 +291,14 @@ async function main(): Promise<void> {
     args.configPath
   );
   const taskNames = Object.keys(config.tasks);
-  const lockPath = resolve(dirname(configPath), ".derive.lock");
+  const lockPath = resolve(dirname(configPath), ".llmake.lock");
 
   console.log(
-    `derive: loaded ${configPath.split("/").pop()} (${taskNames.length} tasks)`
+    `llmake: loaded ${configPath.split("/").pop()} (${taskNames.length} tasks)`
   );
 
   if (args.task && !(args.task in config.tasks)) {
-    console.error(`derive: unknown task: ${args.task}`);
+    console.error(`llmake: unknown task: ${args.task}`);
     process.exit(1);
   }
 
@@ -321,7 +321,7 @@ async function main(): Promise<void> {
 
 main().catch((error) => {
   console.error(
-    `derive: ${error instanceof Error ? error.message : String(error)}`
+    `llmake: ${error instanceof Error ? error.message : String(error)}`
   );
   process.exit(1);
 });

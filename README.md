@@ -1,20 +1,20 @@
-# derive
+# llmake
 
 A content-addressed, declarative, LLM-powered build system for derived files.
 
 > `make` where the compiler is an LLM.
 
 ```bash
-derive              # run tasks with changes
-derive readme       # run specific task
-derive --status     # see what's stale
-derive --force      # ignore hashes, run anyway
+llmake              # run tasks with changes
+llmake readme       # run specific task
+llmake --status     # see what's stale
+llmake --force      # ignore hashes, run anyway
 ```
 
 ## What It Does
 
 1. Hash your source files (SHA-256)
-2. Compare against `.derive.lock`
+2. Compare against `.llmake.lock`
 3. If changed: assemble prompt -> run your LLM CLI -> update lock
 4. If unchanged: skip
 
@@ -24,18 +24,18 @@ No more regenerating docs when nothing changed. No more forgetting to update gen
 
 ```bash
 # Install
-npx make-derive --init
+npx llmake --init
 
-# Edit derive.jsonc to define your tasks
+# Edit llmake.jsonc to define your tasks
 # Then run
-npx make-derive
+npx llmake
 ```
 
 Or install globally:
 
 ```bash
-npm i -g make-derive
-derive
+npm i -g llmake
+llmake
 ```
 
 ## Installation
@@ -43,40 +43,40 @@ derive
 ### Global install
 
 ```bash
-npm i -g make-derive    # npm
-bun add -g make-derive  # bun
-pnpm add -g make-derive # pnpm
+npm i -g llmake    # npm
+bun add -g llmake  # bun
+pnpm add -g llmake # pnpm
 ```
 
 ### Run without installing
 
 ```bash
-npx make-derive         # npm
-bunx make-derive        # bun
-pnpx make-derive        # pnpm
+npx llmake         # npm
+bunx llmake        # bun
+pnpx llmake        # pnpm
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/CyrusNuevoDia/derive
-cd derive
+git clone https://github.com/CyrusNuevoDia/llmake
+cd llmake
 bun install
-bun run build:bin  # Creates bin/derive
+bun run build:bin  # Creates bin/llmake
 ```
 
 ## CLI Reference
 
 ```
-derive                     Run all tasks with changes
-derive <task>              Run specific task if changed
-derive --force [task]      Run regardless of hash state
-derive --dry-run [task]    Show what would run
-derive --status            Show per-task change status
-derive --init              Create starter derive.jsonc
-derive --config <path>     Use specific config file
-derive --help              Print help
-derive --version           Print version
+llmake                     Run all tasks with changes
+llmake <task>              Run specific task if changed
+llmake --force [task]      Run regardless of hash state
+llmake --dry-run [task]    Show what would run
+llmake --status            Show per-task change status
+llmake --init              Create starter llmake.jsonc
+llmake --config <path>     Use specific config file
+llmake --help              Print help
+llmake --version           Print version
 ```
 
 ### Flags
@@ -88,46 +88,46 @@ derive --version           Print version
 | `--force` | `-f` | Run task(s) regardless of hash state |
 | `--dry-run` | `-n` | Show what would run without executing |
 | `--status` | `-s` | Show per-task change status |
-| `--init` | | Create a starter `derive.jsonc` in the current directory |
+| `--init` | | Create a starter `llmake.jsonc` in the current directory |
 | `--config <path>` | `-c` | Use a specific config file instead of auto-discovery |
 
 ### Examples
 
 ```bash
 # Run all tasks that have changes
-derive
+llmake
 
 # Run only the "readme" task (if changed)
-derive readme
+llmake readme
 
 # Force run the "readme" task even if nothing changed
-derive --force readme
-derive -f readme
+llmake --force readme
+llmake -f readme
 
 # See what would run without actually running
-derive --dry-run
-derive -n
+llmake --dry-run
+llmake -n
 
 # Check which tasks have pending changes
-derive --status
-derive -s
+llmake --status
+llmake -s
 
 # Use a specific config file
-derive --config ./config/derive.jsonc
-derive -c ./config/derive.jsonc
+llmake --config ./config/llmake.jsonc
+llmake -c ./config/llmake.jsonc
 
 # Initialize a new project
-derive --init
+llmake --init
 ```
 
 ## Configuration
 
-Derive looks for config files in this order:
+llmake looks for config files in this order:
 
-1. `derive.ts` (TypeScript, for dynamic configs)
-2. `derive.jsonc` (JSON with comments)
-3. `derive.json` (plain JSON)
-4. `derive.toml` (TOML)
+1. `llmake.ts` (TypeScript, for dynamic configs)
+2. `llmake.jsonc` (JSON with comments)
+3. `llmake.json` (plain JSON)
+4. `llmake.toml` (TOML)
 
 ### Config Structure
 
@@ -204,13 +204,13 @@ runner = "llm -m gpt-4o {prompt}"
 
 ### TypeScript Example
 
-Use `derive.ts` for dynamic configuration:
+Use `llmake.ts` for dynamic configuration:
 
 ```typescript
-// derive.ts
-import type { DeriveConfig } from "make-derive";
+// llmake.ts
+import type { LlmakeConfig } from "llmake";
 
-export default async (): Promise<DeriveConfig> => {
+export default async (): Promise<LlmakeConfig> => {
   const pkg = await Bun.file("package.json").json();
 
   return {
@@ -234,7 +234,7 @@ export default async (): Promise<DeriveConfig> => {
 You can also export a static object:
 
 ```typescript
-// derive.ts
+// llmake.ts
 export default {
   runner: "claude --print {prompt}",
   tasks: {
@@ -250,7 +250,7 @@ export default {
 
 ### Content Addressing
 
-Derive uses SHA-256 hashes to track file changes:
+llmake uses SHA-256 hashes to track file changes:
 
 - **Per-file hashes**: Each source file is hashed individually using streaming to handle large files
 - **Merkle root**: A combined hash of all files for fast "anything changed?" checks
@@ -258,7 +258,7 @@ Derive uses SHA-256 hashes to track file changes:
 
 ### Prompt Assembly
 
-When a task runs, derive assembles a prompt in XML format:
+When a task runs, llmake assembles a prompt in XML format:
 
 ```xml
 <prompt>Your task prompt here</prompt>
@@ -275,7 +275,7 @@ The `{prompt}` placeholder is safely shell-escaped before substitution.
 
 ## The Lockfile
 
-`.derive.lock` tracks the state of your last run:
+`.llmake.lock` tracks the state of your last run:
 
 ```json
 {
@@ -301,7 +301,7 @@ The `{prompt}` placeholder is safely shell-escaped before substitution.
 
 ## Runner Examples
 
-Derive is runner-agnostic. Use any CLI that accepts a prompt:
+llmake is runner-agnostic. Use any CLI that accepts a prompt:
 
 ```jsonc
 {
