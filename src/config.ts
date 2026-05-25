@@ -3,13 +3,13 @@ import { resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import stripJsonComments from "strip-json-comments";
 import { z } from "zod";
-import type { LlmakeConfig } from "./types";
+import type { DeriveConfig } from "./types";
 
 const CONFIG_FILES = [
-  "llmake.ts",
-  "llmake.jsonc",
-  "llmake.json",
-  "llmake.toml",
+  "derive.ts",
+  "derive.jsonc",
+  "derive.json",
+  "derive.toml",
 ] as const;
 
 const TaskConfigSchema = z
@@ -27,7 +27,7 @@ const TaskConfigSchema = z
   })
   .passthrough();
 
-const LlmakeConfigSchema = z
+const DeriveConfigSchema = z
   .object({
     runner: z
       .string()
@@ -64,7 +64,7 @@ export async function discoverConfig(cwd?: string): Promise<string | null> {
   return null;
 }
 
-export async function loadConfig(path: string): Promise<LlmakeConfig> {
+export async function loadConfig(path: string): Promise<DeriveConfig> {
   const ext = path.split(".").pop()?.toLowerCase();
 
   if (ext === "ts") {
@@ -86,16 +86,16 @@ export async function loadConfig(path: string): Promise<LlmakeConfig> {
     return validateConfig(parseToml(text));
   }
 
-  throw new Error(`llmake: unsupported config format: ${ext}`);
+  throw new Error(`derive: unsupported config format: ${ext}`);
 }
 
-export function validateConfig(raw: unknown): LlmakeConfig {
-  const result = LlmakeConfigSchema.safeParse(raw);
+export function validateConfig(raw: unknown): DeriveConfig {
+  const result = DeriveConfigSchema.safeParse(raw);
 
   if (!result.success) {
     const issue = result.error.issues[0];
     const path = issue.path.length > 0 ? ` in "${issue.path.join(".")}"` : "";
-    throw new Error(`llmake: config error${path}: ${issue.message}`);
+    throw new Error(`derive: config error${path}: ${issue.message}`);
   }
 
   return result.data;

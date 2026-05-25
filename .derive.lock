@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "tasks": {
+    "readme": {
+      "last_run": "2026-02-04T08:43:31.550Z",
+      "sources_hash": "sha256:cb5f550b2b9ff4ef4207487d30395df9971b4f588928653dad3d106025ecb651",
+      "files": {
+        "src/config.ts": "sha256:cee5b2eb569f15d44415db491af5f606e634a5cff5344b12aefeb135d77cae2a",
+        "src/hash.ts": "sha256:06dd6947321ecacbf74bab49ea241d6346fe7db9d7629efcc535b66a6707b31d",
+        "src/index.ts": "sha256:75cc4438aaaa0fce8ef82ad1f4cdbf0d832ace225a15a2e39d949c8936ea2943",
+        "src/lock.ts": "sha256:5842f3ae474c6ee88d2564266661de0611838e2db708f53c808e454e7777fddd",
+        "src/runner.ts": "sha256:486932af4b61f63d2832de9119e013db7cf26b80790f18117d0937b06142abe4",
+        "src/types.ts": "sha256:87b4dce856fbda4f79a192b3a631f5c94f16493ef2d16b3f3b0cafe21a4df5e1"
+      }
+    }
+  }
+}

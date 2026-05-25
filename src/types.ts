@@ -1,8 +1,8 @@
 /**
  * The resolved, validated configuration shape.
- * Represents the parsed and validated llmake configuration.
+ * Represents the parsed and validated derive configuration.
  */
-export interface LlmakeConfig {
+export interface DeriveConfig {
   /** The default runner command to execute for code generation tasks. */
   runner: string;
   /** Map of task names to their configurations. */
@@ -10,7 +10,7 @@ export interface LlmakeConfig {
 }
 
 /**
- * Configuration for a single llmake task.
+ * Configuration for a single derive task.
  * Defines what files to process and how to generate code from them.
  */
 export interface TaskConfig {
@@ -25,10 +25,10 @@ export interface TaskConfig {
 }
 
 /**
- * The .llmake.lock file shape.
+ * The .derive.lock file shape.
  * Tracks the state of generated files for incremental builds.
  */
-export interface LlmakeLock {
+export interface DeriveLock {
   /** Lock file format version for future compatibility. */
   version: 1;
   /** Map of task names to their lock entries. */
